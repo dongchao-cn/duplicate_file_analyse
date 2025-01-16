@@ -2,7 +2,7 @@ use clap::Parser;
 use walkdir::WalkDir;
 use std::path::PathBuf;
 use hex;
-use sha3::{Digest, Sha3_256};
+use sha1::{Sha1, Digest};
 use std::fs::File;
 use std::io::{BufReader, Read};
 
@@ -12,18 +12,18 @@ struct Args {
     path: String
 }
 
+// cargo run -- -p ~/duplicate_file_analyse
 fn main() {
     println!("Hello, world!");
     let args = Args::parse();
 
     println!("args.path: {}", args.path);
 
-    // let all_files = get_all_files(&args.path);
-    // for each in all_files {
-    //     println!("{}", each.display());
-    // }
-
-    calc_hash("");
+    let all_files = get_all_files(&args.path);
+    for each in all_files {
+        let each_hash = calc_hash(each.to_str().unwrap());
+        println!("{} {}", each.display(), each_hash);
+    }
 }
 
 fn get_all_files(path: &str) -> Vec<PathBuf> {
@@ -44,7 +44,7 @@ const READ_BLOCK_SIZE: usize = 4096;
 
 fn calc_hash(file_name: &str) -> String {
     // create a SHA3-256 object
-    let mut hasher = Sha3_256::new();
+    let mut hasher = Sha1::new();
 
     let f = File::open(file_name).unwrap();
     let mut reader = BufReader::new(f);
