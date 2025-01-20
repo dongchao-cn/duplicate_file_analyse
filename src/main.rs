@@ -1,4 +1,5 @@
 use clap::Parser;
+use duplicate_file_analyse::{*};
 
 #[derive(Parser)]
 struct Args {
@@ -14,7 +15,8 @@ fn main() {
 
     println!("args.path: {}", args.path);
 
-    let all_files = duplicate_file_analyse::get_all_files(&args.path);
-    let all_duplicated_files = duplicate_file_analyse::get_duplicated_files(&all_files);
-    dbg!(all_duplicated_files);
+    let all_files = get_all_files(&args.path);
+    let all_duplicated_files = get_duplicated_files(&all_files);
+    let analyse_result = analyse_duplicated_floder(all_duplicated_files);
+    dbg!(analyse_result);
 }
