@@ -1,0 +1,15 @@
+# log4rs.yml
+appenders:
+  stdout:
+    kind: console
+  file:
+    kind: file
+    path: "output.log"
+    encoder:
+      pattern: "{d} - {l} - {m}{n}"
+
+root:
+  level: info
+  appenders:
+    - file
+    - stdout

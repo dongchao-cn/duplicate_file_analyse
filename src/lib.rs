@@ -7,6 +7,9 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 use std::hash::Hasher;
+use threadpool::ThreadPool;
+use std::sync::mpsc::channel;
+use log::info;
 
 
 #[derive(Debug)]
@@ -45,16 +48,39 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {
     let mut all_files_hash: HashMap<String, Vec<String>> = HashMap::new();
+    let num_cpus = num_cpus::get();
+    info!("num_cpus: {}", num_cpus);
+    let pool = ThreadPool::new(num_cpus);
+    let (tx, rx) = channel();
+
     for each in all_files {
-        let each_hash = calc_hash(each);
-        all_files_hash.entry(each_hash).or_insert_with(Vec::new).push(each.to_string());
+        let tx = tx.clone();
+        let each = each.clone();
+        pool.execute(move || {
+            let each_hash = calc_hash(&each);
+            tx.send((each, each_hash)).expect("Could not send data!");
+        });
+        // let each_hash = calc_hash(each);
+        // all_files_hash.entry(each_hash).or_insert_with(Vec::new).push(each.to_string());
     }
+    
+    drop(tx); // Close the sending side of the channel
+
+    let mut count = 0;
+    for (file, hash) in rx {
+        // let (each, each_hash) = rx.recv().unwrap();
+        count += 1;
+        all_files_hash.entry(hash).or_insert_with(Vec::new).push(file.to_string());
+        info!("{}/{}", count, all_files.len());
+    }
+
     let mut duplicated_files = HashMap::new();
     for (hash, file_vec) in all_files_hash {
         if file_vec.len() >= 2 {
             duplicated_files.insert(hash, file_vec);
         }
     }
+
     duplicated_files
 }
 
@@ -67,7 +93,7 @@ pub fn get_all_files(path: &str) -> Vec<String> {
             let metadata = entry.metadata().unwrap();
             if metadata.len() > 0 {
                 let p = entry.path().to_str().unwrap().to_string();
-                // println!("{}", p.display());
+                // debug!("{}", p.display());
                 result.push(p);
             }
         }
@@ -82,8 +108,8 @@ fn calc_hash(file_name: &str) -> String {
 
     let f = File::open(file_name).unwrap();
     let mut reader = BufReader::new(f);
-    let mut buffer = [0; READ_BLOCK_SIZE];
-    // let mut buffer = vec![0; READ_BLOCK_SIZE];
+    // let mut buffer = [0; READ_BLOCK_SIZE];
+    let mut buffer = vec![0; READ_BLOCK_SIZE];
 
     loop {
         let bytes_read = reader.read(&mut buffer).unwrap();
@@ -94,12 +120,12 @@ fn calc_hash(file_name: &str) -> String {
             break;
         }
 
-        hasher.update(&buffer);
+        hasher.update(&buffer[..bytes_read]);
     }
 
     let result = hasher.finalize();
 
-    // println!("{}", hex::encode(result));
+    // debug!("{}", hex::encode(result));
     hex::encode(result)
 }
 
@@ -111,6 +137,6 @@ mod test {
     #[test]
     fn test_calc_hash() {
         let p = "/home/dongchao/duplicate_file_analyse/Cargo.toml";
-        println!("{}", calc_hash(p))
+        info!("{}", calc_hash(p))
     }
 }
