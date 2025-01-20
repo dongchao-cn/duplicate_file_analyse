@@ -70,7 +70,7 @@ pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<Stri
     for (file, hash) in rx {
         // let (each, each_hash) = rx.recv().unwrap();
         count += 1;
-        all_files_hash.entry(hash).or_insert_with(Vec::new).push(file.to_string());
+        all_files_hash.entry(hash).or_insert_with(Vec::new).push(file);
         info!("{}/{}", count, all_files.len());
     }
 
@@ -89,7 +89,7 @@ pub fn get_all_files(path: &str) -> Vec<String> {
 
     for entry in WalkDir::new(path) {
         let entry = entry.unwrap();
-        if entry.file_type().is_file() {
+        if entry.file_type().is_file() && entry.path().to_str().map_or(false, |s| !s.contains("@eaDir")) {
             let metadata = entry.metadata().unwrap();
             if metadata.len() > 0 {
                 let p = entry.path().to_str().unwrap().to_string();
