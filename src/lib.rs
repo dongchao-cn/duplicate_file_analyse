@@ -34,16 +34,19 @@ impl VecKey {
     }
 }
 
-pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>) -> HashMap<VecKey, u32> {
+pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>) -> Vec<(VecKey, u32)> {
     let mut result: HashMap<VecKey, u32> = HashMap::new();
     for (_hash, file_vec) in &duplicated_files {
-        let mut file_path_vec: Vec<String> = file_vec.iter().map(|f| Path::new(f).parent().map(|p: &Path| p.to_str().unwrap().to_string()).unwrap()).collect();
+        let mut file_path_vec: Vec<String> = file_vec.iter()
+            .map(|f| Path::new(f).parent().map(|p: &Path| p.to_str().unwrap().to_string()).unwrap())
+            .collect();
         file_path_vec.sort();
         let file_path_veckey = VecKey::new(file_path_vec);
         *result.entry(file_path_veckey).or_insert(0) += 1;
     }
-
-    result
+    let mut result_vec: Vec<_> = result.into_iter().collect();
+    result_vec.sort_by(|a, b| b.1.cmp(&a.1));
+    result_vec
 }
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {
