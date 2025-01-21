@@ -63,7 +63,6 @@ pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<Stri
         info!("{:?}/{}", cnt, all_files.len());
     });
 
-    let all_files_hash = all_files_hash.clone();
     let mut duplicated_files = HashMap::new();
     for kv in all_files_hash.iter() {
         let (hash, file_vec) = kv.pair();
