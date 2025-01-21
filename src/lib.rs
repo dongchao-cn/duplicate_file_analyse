@@ -1,13 +1,15 @@
 use walkdir::WalkDir;
 use std::collections::HashMap;
 use std::hash::Hash;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU32, Ordering};
+use dashmap::DashMap;
 use hex;
 use sha1::{Sha1, Digest};
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 use std::hash::Hasher;
-use std::sync::mpsc::channel;
 use log::info;
 use rayon::prelude::*;
 
@@ -50,28 +52,21 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
 }
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {
-    let mut all_files_hash: HashMap<String, Vec<String>> = HashMap::new();
-
-    let (tx, rx) = channel();
-
+    let cnt = Arc::new(AtomicU32::new(0));
+    let all_files_hash = Arc::new(DashMap::new());
     all_files.par_iter().for_each(|each| {
         let each_hash = calc_hash(each);
-        tx.send((each.clone(), each_hash)).expect("Could not send data!");
+        all_files_hash.entry(each_hash).or_insert_with(Vec::new).push(each);
+        cnt.fetch_add(1, Ordering::SeqCst);
+        info!("{:?}/{}", cnt, all_files.len());
     });
 
-    drop(tx); // Close the sending side of the channel
-
-    let mut count = 0;
-    for (file, hash) in rx {
-        count += 1;
-        all_files_hash.entry(hash).or_insert_with(Vec::new).push(file);
-        info!("{}/{}", count, all_files.len());
-    }
-
+    let all_files_hash = all_files_hash.clone();
     let mut duplicated_files = HashMap::new();
-    for (hash, file_vec) in all_files_hash {
+    for kv in all_files_hash.iter() {
+        let (hash, file_vec) = kv.pair();
         if file_vec.len() >= 2 {
-            duplicated_files.insert(hash, file_vec);
+            duplicated_files.insert(hash.clone(), file_vec.iter().cloned().cloned().collect());
         }
     }
 

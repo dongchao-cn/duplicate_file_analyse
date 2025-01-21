@@ -12,6 +12,8 @@ struct Args {
 // cargo run -- -p ~/duplicate_file_analyse
 // cargo run -- -p ~/duplicate_file_analyse/tests/data
 // cargo flamegraph -- -p ~/duplicate_file_analyse
+// cargo build --release
+// nohup ./duplicate_file_analyse -p /var/services/homes/dongchao/Photos &
 fn main() {
     env::set_var("RUST_LOG", "info"); // 设置日志级别
     // env_logger::init();
