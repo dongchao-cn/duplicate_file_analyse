@@ -7,9 +7,9 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
 use std::hash::Hasher;
-use threadpool::ThreadPool;
 use std::sync::mpsc::channel;
 use log::info;
+use rayon::prelude::*;
 
 
 #[derive(Debug)]
@@ -51,27 +51,18 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {
     let mut all_files_hash: HashMap<String, Vec<String>> = HashMap::new();
-    let num_cpus = num_cpus::get();
-    info!("num_cpus: {}", num_cpus);
-    let pool = ThreadPool::new(num_cpus);
+
     let (tx, rx) = channel();
 
-    for each in all_files {
-        let tx = tx.clone();
-        let each = each.clone();
-        pool.execute(move || {
-            let each_hash = calc_hash(&each);
-            tx.send((each, each_hash)).expect("Could not send data!");
-        });
-        // let each_hash = calc_hash(each);
-        // all_files_hash.entry(each_hash).or_insert_with(Vec::new).push(each.to_string());
-    }
-    
+    all_files.par_iter().for_each(|each| {
+        let each_hash = calc_hash(each);
+        tx.send((each.clone(), each_hash)).expect("Could not send data!");
+    });
+
     drop(tx); // Close the sending side of the channel
 
     let mut count = 0;
     for (file, hash) in rx {
-        // let (each, each_hash) = rx.recv().unwrap();
         count += 1;
         all_files_hash.entry(hash).or_insert_with(Vec::new).push(file);
         info!("{}/{}", count, all_files.len());
