@@ -28,7 +28,8 @@ fn main() {
     info!("all_files: {}", all_files.len());
     let all_duplicated_files = get_duplicated_files(&all_files);
     info!("all_duplicated_files: {:#?}", all_duplicated_files);
-    let analyse_result = analyse_duplicated_floder(all_duplicated_files);
+    let (analyse_result, delete_cmd) = analyse_duplicated_floder(all_duplicated_files);
     info!("analyse_result: {:#?}", analyse_result);
+    info!("delete_cmd: {}", delete_cmd);
     info!("done!");
 }
