@@ -65,7 +65,7 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
     }
     let mut result_vec: Vec<_> = result.into_iter().collect();
     result_vec.sort_by(|a, b| b.1.0.cmp(&a.1.0));
-    (result_vec, delete_cmd.join(" "))
+    (result_vec, delete_cmd.join("\n"))
 }
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {
