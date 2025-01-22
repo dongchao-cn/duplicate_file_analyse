@@ -38,7 +38,7 @@ impl VecKey {
 
 pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>) -> (Vec<(VecKey, (u32, Vec<String>))>, String) {
     let mut result: HashMap<VecKey, (u32, Vec<String>)> = HashMap::new();
-    let mut delete_cmd = Vec::new();
+    let mut delete_cmd = String::from("\n");
     for (hash, file_vec) in &duplicated_files {
         // 获取文件修改时间
         let mut modified_time_vec = Vec::new();
@@ -51,7 +51,7 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
         }
         modified_time_vec.sort_by(|x, y| x.1.cmp(&y.1));
         for each in &modified_time_vec[1..] {
-            delete_cmd.push(format!("rm \"{}\";", each.0));
+            delete_cmd += &format!("rm \"{}\";\n", each.0);
         }
 
         let mut file_path_vec: Vec<String> = file_vec.iter()
@@ -65,7 +65,7 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
     }
     let mut result_vec: Vec<_> = result.into_iter().collect();
     result_vec.sort_by(|a, b| b.1.0.cmp(&a.1.0));
-    (result_vec, delete_cmd.join("\n"))
+    (result_vec, delete_cmd)
 }
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {
