@@ -7,7 +7,7 @@ use dashmap::DashMap;
 use hex;
 use sha1::{Sha1, Digest};
 use std::fs::File;
-use std::io::{stdin, BufReader, Read};
+use std::io::{stdin, BufReader, Read, Write};
 use std::path::Path;
 use std::hash::Hasher;
 use log::{info, warn};
@@ -151,6 +151,20 @@ fn calc_hash(file_name: &str) -> String {
     hex::encode(result)
 }
 
+pub fn serialize(all_duplicated_files: &HashMap<String, Vec<String>>, file_name: &String) {
+    // 序列化并存储到磁盘
+    let serialized = serde_json::to_string(all_duplicated_files).unwrap();
+    let mut file = File::create(&file_name).unwrap();
+    file.write_all(serialized.as_bytes()).unwrap();
+}
+
+pub fn deserialize(file_name: &String) -> HashMap<String, Vec<String>> {
+    let file = File::open(&file_name).unwrap();
+    let reader = BufReader::new(file);
+    let result: HashMap<String, Vec<String>> = serde_json::from_reader(reader).unwrap();
+    result
+}
+
 #[cfg(test)]
 mod test {
 
@@ -162,3 +176,4 @@ mod test {
         info!("{}", calc_hash(p))
     }
 }
+
