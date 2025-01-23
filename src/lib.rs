@@ -7,10 +7,10 @@ use dashmap::DashMap;
 use hex;
 use sha1::{Sha1, Digest};
 use std::fs::File;
-use std::io::{BufReader, Read};
+use std::io::{stdin, BufReader, Read};
 use std::path::Path;
 use std::hash::Hasher;
-use log::info;
+use log::{info, warn};
 use rayon::prelude::*;
 
 
@@ -36,9 +36,8 @@ impl VecKey {
     }
 }
 
-pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>) -> (Vec<(VecKey, (u32, Vec<String>))>, String) {
-    let mut result: HashMap<VecKey, (u32, Vec<String>)> = HashMap::new();
-    let mut delete_cmd = String::from("\n");
+pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>) -> Vec<(VecKey, (u32, HashMap<String, Vec<(String, String)>>))> {
+    let mut result: HashMap<VecKey, (u32, HashMap<String, Vec<(String, String)>>)> = HashMap::new();
     for (hash, file_vec) in &duplicated_files {
         // 获取文件修改时间
         let mut modified_time_vec = Vec::new();
@@ -47,25 +46,43 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
             let modified_time = metadata.modified().unwrap().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
             let modified_time = chrono::DateTime::from_timestamp(modified_time as i64, 0).unwrap().format("%Y-%m-%d %H:%M:%S").to_string();
             // info!("File: {}, Modified Time: {:?}", file, modified_time);
-            modified_time_vec.push((file, modified_time))
+            modified_time_vec.push((file.clone(), modified_time))
         }
-        modified_time_vec.sort_by(|x, y| x.1.cmp(&y.1));
-        for each in &modified_time_vec[1..] {
-            delete_cmd += &format!("rm \"{}\";\n", each.0);
-        }
+        modified_time_vec.sort_by(|x, y| x.0.cmp(&y.0));
 
         let mut file_path_vec: Vec<String> = file_vec.iter()
             .map(|f| Path::new(f).parent().map(|p: &Path| p.to_str().unwrap().to_string()).unwrap())
             .collect();
         file_path_vec.sort();
         let file_path_veckey = VecKey::new(file_path_vec);
-        let entry = result.entry(file_path_veckey).or_insert((0, Vec::new()));
+        let entry = result.entry(file_path_veckey).or_insert((0, HashMap::new()));
         entry.0 += 1;
-        entry.1.push(format!("{} {:?}", hash.clone(), modified_time_vec));
+        entry.1.entry(hash.clone()).insert_entry(modified_time_vec);
     }
     let mut result_vec: Vec<_> = result.into_iter().collect();
     result_vec.sort_by(|a, b| b.1.0.cmp(&a.1.0));
-    (result_vec, delete_cmd)
+    result_vec
+}
+
+pub fn gen_delete_cmd(analyse_result: Vec<(VecKey, (u32, HashMap<String, Vec<(String, String)>>))>) {
+    for item in &analyse_result {
+        warn!("select: {:#?}", item);
+        for (index, path) in item.0.key.iter().enumerate() {
+            warn!("remain: ({}) {:#?}", index, path);
+        }
+        let mut input = String::new();
+        stdin().read_line(&mut input).unwrap();
+        let input_num: usize = input.trim().parse().unwrap();
+        
+        for (hash, path) in &item.1.1 {
+            for (index, (file, _modified_time)) in path.iter().enumerate() {
+                if index != input_num {
+                    warn!("rm -rf \"{}\"; # {}", file, hash);
+                    warn!(target: "app::del_file", "rm -rf \"{}\"; # {}", file, hash);
+                }
+            }
+        }
+    }
 }
 
 pub fn get_duplicated_files(all_files: &Vec<String>) -> HashMap<String, Vec<String>> {

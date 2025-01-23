@@ -2,14 +2,28 @@
 appenders:
   stdout:
     kind: console
-  file:
+    encoder:
+      pattern: "{d} - {l} - {I} - {m}{n}"
+  log_file:
     kind: file
     path: "output.log"
     encoder:
-      pattern: "{d} - {l} - {m}{n}"
+      pattern: "{d} - {l} - {I} - {m}{n}"
+  del_file:
+    kind: file
+    path: "del.sh"
+    encoder:
+      pattern: "{m}{n}"
 
 root:
   level: info
   appenders:
-    - file
+    - log_file
     - stdout
+
+loggers:
+  app::del_file:
+    level: info
+    appenders:
+      - del_file
+    additive: false
