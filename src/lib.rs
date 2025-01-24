@@ -48,7 +48,14 @@ pub fn analyse_duplicated_floder(duplicated_files: HashMap<String, Vec<String>>)
             // info!("File: {}, Modified Time: {:?}", file, modified_time);
             modified_time_vec.push((file.clone(), modified_time))
         }
-        modified_time_vec.sort_by(|x, y| x.0.cmp(&y.0));
+        modified_time_vec.sort_by(|x, y| {
+            let parent_cmp = Path::new(&x.0).parent().cmp(&Path::new(&y.0).parent());
+            if parent_cmp == std::cmp::Ordering::Equal {
+                x.0.cmp(&y.0)
+            } else {
+                parent_cmp
+            }
+        });
 
         let mut file_path_vec: Vec<String> = file_vec.iter()
             .map(|f| Path::new(f).parent().map(|p: &Path| p.to_str().unwrap().to_string()).unwrap())
@@ -73,12 +80,10 @@ pub fn gen_delete_cmd(analyse_result: Vec<(VecKey, (u32, HashMap<String, Vec<(St
         let mut input = String::new();
         stdin().read_line(&mut input).unwrap();
         let input_num: usize = input.trim().parse().unwrap();
-        let remain_path = Path::new(item.0.key.get(input_num).unwrap());
-        info!("remain_path: {:?}", remain_path);
         
         for (hash, path) in &item.1.1 {
-            for (file, _modified_time) in path.iter() {
-                if Path::new(file).parent().unwrap() != remain_path {
+            for (index, (file, _modified_time)) in path.iter().enumerate() {
+                if input_num != index {
                     warn!("rm -rf \"{}\"; # {}", file, hash);
                     warn!(target: "app::del_file", "rm -rf \"{}\"; # {}", file, hash);
                 }
