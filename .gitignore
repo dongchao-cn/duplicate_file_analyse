@@ -4,3 +4,4 @@ perf.data
 perf.data.old
 output.log
 del.sh
+duplicated_files.json

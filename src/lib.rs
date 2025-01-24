@@ -68,15 +68,17 @@ pub fn gen_delete_cmd(analyse_result: Vec<(VecKey, (u32, HashMap<String, Vec<(St
     for item in &analyse_result {
         warn!("select: {:#?}", item);
         for (index, path) in item.0.key.iter().enumerate() {
-            warn!("remain: ({}) {:#?}", index, path);
+            warn!("remain ({}): {:#?}", index, path);
         }
         let mut input = String::new();
         stdin().read_line(&mut input).unwrap();
         let input_num: usize = input.trim().parse().unwrap();
+        let remain_path = Path::new(item.0.key.get(input_num).unwrap());
+        info!("remain_path: {:?}", remain_path);
         
         for (hash, path) in &item.1.1 {
-            for (index, (file, _modified_time)) in path.iter().enumerate() {
-                if index != input_num {
+            for (file, _modified_time) in path.iter() {
+                if Path::new(file).parent().unwrap() != remain_path {
                     warn!("rm -rf \"{}\"; # {}", file, hash);
                     warn!(target: "app::del_file", "rm -rf \"{}\"; # {}", file, hash);
                 }

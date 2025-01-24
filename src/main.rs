@@ -17,7 +17,8 @@ struct Args {
 // cargo run -- -p ~/duplicate_file_analyse/tests/data -m analyse_duplicated_floder
 // cargo flamegraph -- -p ~/duplicate_file_analyse
 // cargo build --release
-// nohup ./duplicate_file_analyse -p /var/services/homes/dongchao/Photos &
+// nohup ./duplicate_file_analyse -p /var/services/homes/dongchao/Photos -m get_duplicated_files &
+// ./duplicate_file_analyse -p /var/services/homes/dongchao/Photos -m analyse_duplicated_floder
 fn main() {
     env::set_var("RUST_LOG", "info"); // 设置日志级别
     // env_logger::init();
